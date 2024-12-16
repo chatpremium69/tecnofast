@@ -1,0 +1,95 @@
+/* Estilos Generales */
+body {
+    background-color: #f8f9fa; /* Fondo claro para el cuerpo */
+    color: #343a40; /* Texto gris oscuro */
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Contenedor Principal */
+.container {
+    margin-top: 20px;
+}
+
+/* Estilo de las Tarjetas */
+.card {
+    background-color: #1e1e1e; /* Fondo oscuro */
+    border: 2px solid #dc3545; /* Borde rojo */
+    color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+    background-color: #dc3545; /* Encabezado rojo */
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Botones */
+.btn-danger {
+    background-color: #dc3545;
+    border: none;
+    color: #ffffff;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.btn-danger:hover {
+    background-color: #b02a37;
+    color: #ffffff;
+}
+
+/* Formulario */
+.form-control {
+    border: 2px solid #dc3545;
+    border-radius: 5px;
+    background-color: #343a40;
+    color: #ffffff;
+}
+
+.form-control:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 5px rgba(220, 53, 69, 0.8);
+    outline: none;
+}
+
+/* Tablas */
+.table {
+    margin-bottom: 0;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #212529;
+    color: #ffffff;
+}
+
+.table-striped > tbody > tr:nth-of-type(even) {
+    background-color: #343a40;
+    color: #ffffff;
+}
+
+.table thead th {
+    background-color: #dc3545;
+    color: white;
+    text-align: center;
+}
+
+/* Gráfico */
+img {
+    border: 2px solid #dc3545;
+    border-radius: 8px;
+    background-color: #1e1e1e;
+    padding: 5px;
+    margin-top: 15px;
+}
+
+/* Mensajes de Error */
+.error-message {
+    color: #dc3545;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 20px;
+}
