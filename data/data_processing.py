@@ -15,7 +15,7 @@ column_names = [
 
 def procesar_data(file_path):
     # Especificar las hojas relevantes
-    sheet_relevant = ["Fletes TF"]
+    sheet_relevant = ["Fletes TF", "Movimientos internos", "Fletes Subcontratos"]
 
     # Crear una lista para almacenar los DataFrames
     combined_data = []
