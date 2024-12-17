@@ -1,3 +1,5 @@
+import webbrowser
+from threading import Timer 
 from flask import Flask, render_template, request
 import pandas as pd
 import os
@@ -132,7 +134,15 @@ def generar_kpi_graficos(filtered_data):
 
     return kpi_images
 
-
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:5000/")
 
 if __name__ == "__main__":
+    def open_browser():
+        webbrowser.open_new("http://127.0.0.1:5000/")  # Abrir la URL principal
+
+    # Verificar si el servidor está iniciando por primera vez (no en el proceso de recarga)
+    if not os.environ.get("WERKZEUG_RUN_MAIN"):
+        Timer(1, open_browser).start()  # Abre el navegador solo en el primer inicio
+
     app.run(debug=True)
