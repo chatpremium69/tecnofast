@@ -12,7 +12,7 @@
     <div class="container">
         <!-- Título -->
         <div class="card mb-4">
-            <div class="card-header">Dashboard de Transporte - Proyecto Centinela</div>
+            <div class="card-header">Dashboard de Transporte - Proyecto</div>
             <div class="card-body">
                 <p class="text-center">Seleccione un rango de fechas para visualizar estadísticas y datos relevantes.</p>
             </div>
@@ -41,9 +41,20 @@
 
 
         <!-- Datos Filtrados -->
+        {% if filtered_table_1 %}
+        <div class="card mb-4">
+            <div class="card-header">Datos Filtrados MODULOS</div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
+                <div class="table-responsive">
+                    {{ filtered_table_1 | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {% if filtered_table %}
         <div class="card mb-4">
-            <div class="card-header">Datos Filtrados</div>
+            <div class="card-header">Datos Filtrados MISCELANEOS</div>
             <div class="card-body" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
                 <div class="table-responsive">
                     {{ filtered_table | safe }}
@@ -51,11 +62,27 @@
             </div>
         </div>
         {% endif %}
+        
 
         <!-- Gráficos de KPIs -->
+        {% if kpi_images_1 %}
+        <div class="card mb-4">
+            <div class="card-header">Gráficos de KPIs MODULOS</div>
+            <div class="card-body">
+                <div class="row">
+                    {% for key, image in kpi_images_1.items() %}
+                    <div class="col-md-4 text-center mb-3">
+                        <h5>{{ key.replace('_', ' ').title() }}</h5>
+                        <img src="data:image/png;base64,{{ image }}" alt="{{ key }}" class="img-fluid" style="border: 2px solid #dc3545; border-radius: 8px;">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
         {% if kpi_images %}
         <div class="card mb-4">
-            <div class="card-header">Gráficos de KPIs</div>
+            <div class="card-header">Gráficos de KPIs MISCELANEOS</div>
             <div class="card-body">
                 <div class="row">
                     {% for key, image in kpi_images.items() %}

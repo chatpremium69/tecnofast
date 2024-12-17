@@ -22,16 +22,20 @@ kpi_images_global = None
 @app.route("/", methods=["GET", "POST"])
 def dashboard():
     global kpi_images_global  # Declarar variable global
-    file_path = "data/Control y registro de misceláneos proyecto Centinela.xlsx"
+    global kpi_images_global_1
+    file_path = "data/SIERRA_GORDA.xlsx"
 
     try:
         # Procesar los datos
         data = data_processing.procesar_data(file_path)
+        data_1 = data_processing.procesar_data_modulos(file_path)
     except Exception as e:
         return render_template("error.html", message=f"Error al procesar el archivo: {str(e)}")
     
     filtered_data = None
+    filtered_data_1 = None
     kpi_images_global = None  # Reiniciar variable global al cargar la página
+    kpi_images_global_1 = None
     
     if request.method == "POST":
         # Obtener fechas del formulario
@@ -45,9 +49,13 @@ def dashboard():
                 end_date = pd.to_datetime(end_date)
                 data["Fecha"] = pd.to_datetime(data["Fecha"])
                 filtered_data = data[(data["Fecha"] >= start_date) & (data["Fecha"] <= end_date)]
+                data_1["FECHA DESPACHO"] = pd.to_datetime(data_1["FECHA DESPACHO"])
+                filtered_data_1 = data_1[(data_1["FECHA DESPACHO"] >= start_date) & (data_1["FECHA DESPACHO"] <= end_date)]
+
                 
                 # Generar gráficos de KPI y guardarlos en la variable global
                 kpi_images_global = generar_kpi_graficos(filtered_data)
+                kpi_images_global_1 = generar_kpi_graficos_1(filtered_data_1, data_1)
             except Exception as e:
                 return render_template("error.html", message=f"Error al filtrar los datos: {str(e)}")
 
@@ -57,7 +65,9 @@ def dashboard():
     return render_template(
         "dashboard.html", 
         filtered_table=filtered_data.head(largo).to_html(classes="table table-striped", index=False) if filtered_data is not None else None,
-        kpi_images=kpi_images_global
+        kpi_images=kpi_images_global,
+        filtered_table_1 = filtered_data_1.head(largo).to_html(classes="table table-striped", index=False) if filtered_data_1 is not None else None,
+        kpi_images_1 = kpi_images_global_1
     )
 
 
@@ -236,6 +246,75 @@ def generar_kpi_graficos(filtered_data):
 
     return kpi_images
 
+def generar_kpi_graficos_1(filtered_data_1, data_1):
+    """
+    Genera gráficos circulares para:
+    1. Porcentaje de N° de serie con N° EDP no vacío.
+    2. Dinero gastado en N° de serie con N° OC no vacío.
+    """
+    kpi_images = {}
+
+    # 1. Porcentaje de N° DE SERIE con N° EDP no vacío
+    total_series = len(filtered_data_1)
+    series_con_edp = filtered_data_1['N° EDP'].notna().sum()
+    porcentaje_con_edp = (series_con_edp / len(data_1)) * 100
+    porcentaje_sin_edp = 100 - porcentaje_con_edp
+
+    # Crear gráfico circular para EDP
+    plt.figure(figsize=(8, 8))
+    sizes = [porcentaje_sin_edp, porcentaje_con_edp]
+    labels = ['Por Enviar', 'Enviado']
+    colors = ['#FF6F61', '#4CAF50']  # Rojo bonito y verde bonito  # Colores rojo suave y verde fuerte
+    
+    plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, textprops={'fontsize': 12})
+    
+
+    # Añadir número grande en el centro
+    plt.text(0, 0, f"{porcentaje_con_edp:.1f}%", ha='center', va='center', fontsize=28, fontweight='bold')
+
+    img = io.BytesIO()
+    plt.savefig(img, format='png', bbox_inches='tight')
+    img.seek(0)
+    kpi_images['PROGRESO PROYECTO'] = base64.b64encode(img.getvalue()).decode('utf8')
+    plt.close()
+
+    con_oc = filtered_data_1[filtered_data_1['N° OC'].notna() & (filtered_data_1['N° OC'] != "")]
+    sin_oc = filtered_data_1[filtered_data_1['N° OC'].isna() | (filtered_data_1['N° OC'] == "")]
+    
+    # Calcular el dinero gastado en cada grupo
+    total_con_oc = con_oc['VALOR FLETE'].sum() if not con_oc.empty else 0
+    total_sin_oc = sin_oc['VALOR FLETE'].sum() if not sin_oc.empty else 0
+    
+    # Calcular el total
+    total_dinero = total_con_oc + total_sin_oc
+
+    # Crear gráfico circular para dinero gastado
+    plt.figure(figsize=(8, 8))
+    sizes = [total_sin_oc, total_con_oc]
+    labels = ['ENVIADO NO PAGADO', 'ENVIADO CON OC PAGADA']
+    #naranjo y azul bonito
+    colors = ['#FF6F61', '#4FC3F7']  # Colores naranjo y azul bonito
+    
+    # Crear el gráfico de torta
+    plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, textprops={'fontsize': 12}, wedgeprops={'edgecolor': 'black'})
+    
+    # Añadir el monto de dinero en el centro de cada sección
+    plt.text(-1.2, 0, f"${total_sin_oc:,.0f}", ha='center', va='center', fontsize=16, fontweight='bold')
+    plt.text(1.2, 0, f"${total_con_oc:,.0f}", ha='center', va='center', fontsize=16, fontweight='bold')
+
+    #AÑADIR EL TOTAL DE DINERO AL MEDIO Y NEGRO, GRANDE
+    plt.text(0, 0, f"${total_dinero:,.0f}", ha='center', va='center', fontsize=28, fontweight='bold')
+
+
+    # Guardar el gráfico en un objeto BytesIO para que pueda ser mostrado en el dashboard
+    img = io.BytesIO()
+    plt.savefig(img, format='png', bbox_inches='tight')
+    img.seek(0)
+    
+    # Convertir la imagen a base64 y devolverla
+    kpi_images['COSTOS ACTUALES'] = base64.b64encode(img.getvalue()).decode('utf8')
+    plt.close()  # Cerrar la figura para liberar memoria
+    return kpi_images
 
 def generar_colores(categorias):
     """Genera colores únicos para cada categoría usando colormap."""
