@@ -1,4 +1,7 @@
+
 from flask import Flask, render_template, request, send_file
+import webbrowser
+from threading import Timer 
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
@@ -233,6 +236,7 @@ def generar_kpi_graficos(filtered_data):
 
     return kpi_images
 
+
 def generar_colores(categorias):
     """Genera colores únicos para cada categoría usando colormap."""
     colormap = plt.colormaps["tab20"]  # Nueva sintaxis de matplotlib
@@ -260,5 +264,16 @@ def descargar_informe():
         return f"Error al generar el informe: {str(e)}", 500
 
 
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:5000/")
+
+
 if __name__ == "__main__":
+    def open_browser():
+        webbrowser.open_new("http://127.0.0.1:5000/")  # Abrir la URL principal
+
+    # Verificar si el servidor está iniciando por primera vez (no en el proceso de recarga)
+    if not os.environ.get("WERKZEUG_RUN_MAIN"):
+        Timer(1, open_browser).start()  # Abre el navegador solo en el primer inicio
+
     app.run(debug=True)
