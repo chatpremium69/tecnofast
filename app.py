@@ -8,10 +8,17 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import io
 import base64
+from werkzeug.utils import secure_filename
 from data import data_processing
 from generar_informe import generar_informe
 
 app = Flask(__name__)
+
+# Configuración de carpeta de subida
+app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "uploads")
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)  # Crear carpeta si no existe
+ALLOWED_EXTENSIONS = {"xls", "xlsx"}  # Extensiones permitidas
+
 
 # Configurar estilos globales de Matplotlib
 plt.style.use("ggplot")
@@ -24,52 +31,59 @@ kpi_images_global_1 = None
 def dashboard():
     global kpi_images_global
     global kpi_images_global_1
-    file_path = "data/SIERRA_GORDA.xlsx"
+
+    file_path = "data/SIERRA_GORDA.xlsx"  # Archivo predeterminado
+    start_date = pd.Timestamp("2001-01-01")  # Rango inicial por defecto
+    end_date = pd.Timestamp("today")  # Fecha final por defecto
+
+    if request.method == "POST":
+        # Verificar si se subió un archivo
+        if "file" in request.files:
+            file = request.files["file"]
+            if file and allowed_file(file.filename):
+                uploaded_file = secure_filename(file.filename)
+                upload_path = os.path.join(app.config["UPLOAD_FOLDER"], uploaded_file)
+                file.save(upload_path)
+                file_path = upload_path  # Sobrescribir con el archivo subido
+
+        # Obtener fechas del formulario si están disponibles
+        if "filter_all" in request.form:  # Si se presiona el botón "Mostrar Todo"
+            start_date = pd.Timestamp("2001-01-01")
+            end_date = pd.Timestamp("today")
+        else:
+            form_start_date = request.form.get("start_date")
+            form_end_date = request.form.get("end_date")
+            if form_start_date and form_end_date:
+                try:
+                    start_date = pd.to_datetime(form_start_date)
+                    end_date = pd.to_datetime(form_end_date)
+                except Exception as e:
+                    return render_template("error.html", message=f"Error en las fechas: {str(e)}")
 
     try:
         # Procesar los datos
         data = data_processing.procesar_data(file_path)
         data_1 = data_processing.procesar_data_modulos(file_path)
+
+        # Convertir y filtrar las fechas
+        data["Fecha"] = pd.to_datetime(data["Fecha"], errors="coerce")
+        filtered_data = data[(data["Fecha"] >= start_date) & (data["Fecha"] <= end_date)]
+
+        data_1["FECHA DESPACHO"] = pd.to_datetime(data_1["FECHA DESPACHO"], errors="coerce")
+        filtered_data_1 = data_1[(data_1["FECHA DESPACHO"] >= start_date) & (data_1["FECHA DESPACHO"] <= end_date)]
+
+        # Generar gráficos de KPI
+        kpi_images_global = generar_kpi_graficos(filtered_data)
+        kpi_images_global_1 = generar_kpi_graficos_1(filtered_data_1, data_1)
+
     except Exception as e:
-        return render_template("error.html", message=f"Error al procesar el archivo: {str(e)}")
-    
-    filtered_data = None
-    filtered_data_1 = None
-    kpi_images_global = None
-    kpi_images_global_1 = None
-    
-    if request.method == "POST":
-        if "filter_all" in request.form:  # Si se presiona el botón "Mostrar Todo"
-            start_date = pd.Timestamp("2001-01-01")
-            end_date = pd.Timestamp("today")
-        else:
-            # Obtener fechas del formulario
-            start_date = request.form.get("start_date")
-            end_date = request.form.get("end_date")
-            if start_date and end_date:
-                start_date = pd.to_datetime(start_date)
-                end_date = pd.to_datetime(end_date)
+        return render_template("error.html", message=f"Error al procesar o filtrar los datos: {str(e)}")
 
-        try:
-            # Filtrar datos
-            data["Fecha"] = pd.to_datetime(data["Fecha"])
-            filtered_data = data[(data["Fecha"] >= start_date) & (data["Fecha"] <= end_date)]
-            data_1["FECHA DESPACHO"] = pd.to_datetime(data_1["FECHA DESPACHO"])
-            filtered_data_1 = data_1[(data_1["FECHA DESPACHO"] >= start_date) & (data_1["FECHA DESPACHO"] <= end_date)]
-
-            # Generar gráficos de KPI
-            kpi_images_global = generar_kpi_graficos(filtered_data)
-            kpi_images_global_1 = generar_kpi_graficos_1(filtered_data_1, data_1)
-        except Exception as e:
-            return render_template("error.html", message=f"Error al filtrar los datos: {str(e)}")
-
-    largo = len(filtered_data) if filtered_data is not None else 10
-    
     return render_template(
         "dashboard.html",
-        filtered_table=filtered_data.head(largo).to_html(classes="table table-striped", index=False) if filtered_data is not None else None,
+        filtered_table=filtered_data.to_html(classes="table table-striped", index=False) if not filtered_data.empty else None,
         kpi_images=kpi_images_global,
-        filtered_table_1=filtered_data_1.head(largo).to_html(classes="table table-striped", index=False) if filtered_data_1 is not None else None,
+        filtered_table_1=filtered_data_1.to_html(classes="table table-striped", index=False) if not filtered_data_1.empty else None,
         kpi_images_1=kpi_images_global_1,
     )
 
@@ -368,6 +382,11 @@ def descargar_informe():
 
 def open_browser():
     webbrowser.open_new("http://127.0.0.1:5000/")
+
+def allowed_file(filename):
+    """Verificar si el archivo tiene una extensión permitida."""
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ def procesar_data(file_path):
 
     # Procesar cada hoja
     for sheet in sheet_relevant:
-        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=10, usecols="A:V", names=column_names)
+        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=10, usecols="A:V", names=column_names,engine="openpyxl" )
         
         # Eliminar filas completamente vacías
         df = df.dropna(how='all')
@@ -61,7 +61,7 @@ def procesar_data_modulos(file_path):
 
     # Procesar cada hoja
     for sheet in sheet_relevant:
-        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=9, usecols="A:M", names=column_names)
+        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=9, usecols="A:M", names=column_names, engine="openpyxl")
         
         # Limpiar y convertir la columna "N° DE SERIE" a string para evitar problemas
         df["N° DE SERIE"] = df["N° DE SERIE"].astype(str).str.strip()
