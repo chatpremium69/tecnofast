@@ -10,35 +10,39 @@
 </head>
 <body>
     <div class="container">
+        <!-- Logo -->
+        <div class="text-left my-4">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="img-fluid" style="max-width: 150px;">
+        </div>
         <!-- Título -->
         <div class="card mb-4">
             <div class="card-header">Dashboard de Transporte - Proyecto</div>
             <div class="card-body">
-                <p class="text-center">Seleccione un rango de fechas para visualizar estadísticas y datos relevantes.</p>
+                <p class="text-center">Seleccione un rango de fechas para visualizar estadísticas y datos relevantes o filtre todo el contenido.</p>
             </div>
         </div>
 
         <!-- Formulario de Fechas -->
         <div class="card mb-4">
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" id="filter-form">
                     <div class="row">
                         <div class="col-md-6">
                             <label for="start_date" class="form-label">Fecha de Inicio</label>
-                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            <input type="date" class="form-control" id="start_date" name="start_date">
                         </div>
                         <div class="col-md-6">
                             <label for="end_date" class="form-label">Fecha de Término</label>
-                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            <input type="date" class="form-control" id="end_date" name="end_date">
                         </div>
                     </div>
                     <div class="text-center mt-3">
                         <button type="submit" class="btn btn-danger">Filtrar Datos</button>
+                        <button type="submit" class="btn btn-primary" name="filter_all" value="true">Mostrar Todo</button>
                     </div>
                 </form>
             </div>
         </div>
-
 
         <!-- Datos Filtrados -->
         {% if filtered_table_1 %}
@@ -62,7 +66,6 @@
             </div>
         </div>
         {% endif %}
-        
 
         <!-- Gráficos de KPIs -->
         {% if kpi_images_1 %}
@@ -96,9 +99,9 @@
         </div>
         {% endif %}
     </div>
+
     <form action="/descargar_informe" method="POST">
         <button type="submit" class="btn btn-danger">Descargar Informe PDF</button>
     </form>
-    
 </body>
 </html>
