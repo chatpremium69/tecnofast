@@ -481,10 +481,6 @@ def descargar_informe():
     informe_path = "static/informe_transporte.pdf"
 
     try:
-        # Verificar si hay gráficos generados
-        if kpi_images_global is None or kpi_images_global_1 is None :
-            return "No se han generado gráficos. Por favor filtra los datos primero.", 400
-        
         # Generar informe PDF
         data = data_processing.procesar_data(file_path)
         generar_informe(data, kpi_images_global, kpi_images_global_1, output_path=informe_path)
