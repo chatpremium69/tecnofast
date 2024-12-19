@@ -14,6 +14,9 @@ from generar_informe import generar_informe
 
 app = Flask(__name__)
 
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # Límite de 50 MB
+
+
 # Configuración de carpeta de subida
 app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "uploads")
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)  # Crear carpeta si no existe
@@ -32,20 +35,11 @@ def dashboard():
     global kpi_images_global
     global kpi_images_global_1
 
-    file_path = "data/SIERRA_GORDA.xlsx"  # Archivo predeterminado
+    file_path = "data/CENTINELA.xlsx"  # Archivo predeterminado
     start_date = pd.Timestamp("2001-01-01")  # Rango inicial por defecto
     end_date = pd.Timestamp("today")  # Fecha final por defecto
 
     if request.method == "POST":
-        # Verificar si se subió un archivo
-        if "file" in request.files:
-            file = request.files["file"]
-            if file and allowed_file(file.filename):
-                uploaded_file = secure_filename(file.filename)
-                upload_path = os.path.join(app.config["UPLOAD_FOLDER"], uploaded_file)
-                file.save(upload_path)
-                file_path = upload_path  # Sobrescribir con el archivo subido
-
         # Obtener fechas del formulario si están disponibles
         if "filter_all" in request.form:  # Si se presiona el botón "Mostrar Todo"
             start_date = pd.Timestamp("2001-01-01")
@@ -92,64 +86,12 @@ def generar_kpi_graficos(filtered_data):
     """Genera gráficos mejorados y devuelve imágenes en formato base64."""
     kpi_images = {}
 
-    # 1. Gráfico de Barras: Costo Total CLP $ por Proyecto
-    if not filtered_data.empty:
+
+
+    # 1. Gráfico Circular: Distribución por Tipo de Carga
+    if "Wip" in filtered_data.columns:
         plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
-        ax = filtered_data.groupby("Proyecto")["CLP $"].sum().sort_values().plot(
-            kind="bar", color="#dc3545", edgecolor="white", width=0.7
-        )
-        ax.set_title("Costo Total de Transporte por Proyecto", fontsize=14, color="white")
-        ax.set_ylabel("CLP $", fontsize=12, color="white")
-        ax.tick_params(colors="white")
-        plt.xticks(rotation=45, color="white")
-
-        # Mostrar valores sobre las barras
-        for p in ax.patches:
-            ax.annotate(f"{p.get_height():,.0f}", 
-                        (p.get_x() + p.get_width() / 2., p.get_height()), 
-                        ha="center", va="center", fontsize=10, color="white", xytext=(0, 8),
-                        textcoords="offset points")
-
-        plt.tight_layout()
-        plt.gca().set_facecolor("#1e1e1e")
-
-        img = io.BytesIO()
-        plt.savefig(img, format="png", bbox_inches="tight", facecolor="#1e1e1e")
-        img.seek(0)
-        kpi_images["costo_proyecto"] = base64.b64encode(img.getvalue()).decode("utf8")
-        plt.close()
-
-    # 2. Gráfico de Líneas: Evolución de Costos Totales en el Tiempo
-    if "Fecha" in filtered_data.columns:
-        plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
-        ax = filtered_data.groupby("Fecha")["CLP $"].sum().plot(
-            kind="line", marker="o", linestyle="-", color="#66b3ff", linewidth=2, markersize=6
-        )
-        ax.set_title("Evolución de Costos Totales en el Tiempo", fontsize=14, color="white")
-        ax.set_ylabel("CLP $", fontsize=12, color="white")
-        ax.set_xlabel("Fecha", fontsize=12, color="white")
-        ax.tick_params(colors="white")
-        plt.xticks(rotation=45, color="white")
-
-        # Resaltar puntos de picos
-        max_point = filtered_data.groupby("Fecha")["CLP $"].sum().max()
-        ax.annotate(f"Máximo: {max_point:,.0f}", xy=(filtered_data["Fecha"].iloc[-1], max_point),
-                    xytext=(0, 20), textcoords="offset points", ha="center",
-                    fontsize=10, color="white")
-
-        plt.tight_layout()
-        plt.gca().set_facecolor("#1e1e1e")
-
-        img = io.BytesIO()
-        plt.savefig(img, format="png", bbox_inches="tight", facecolor="#1e1e1e")
-        img.seek(0)
-        kpi_images["costo_tiempo"] = base64.b64encode(img.getvalue()).decode("utf8")
-        plt.close()
-
-    # 3. Gráfico Circular: Distribución por Tipo de Carga
-    if "Tipo de Carga" in filtered_data.columns:
-        plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
-        data = filtered_data["Tipo de Carga"].value_counts()
+        data = filtered_data["Wip"].value_counts()
         categorias = data.index
 
         # Generar colores dinámicamente
@@ -170,67 +112,13 @@ def generar_kpi_graficos(filtered_data):
         kpi_images["tipo_carga"] = base64.b64encode(img.getvalue()).decode("utf8")
         plt.close()
 
-    #4 Gráfico por Hoja (Cantidad de registros o Suma de CLP $)
-    if "Hoja" in filtered_data.columns:
-        plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
 
-        # Agrupar por Hoja y contar registros
-        data_por_hoja = filtered_data["Hoja"].value_counts()
-
-        # Crear el gráfico de barras
-        ax = data_por_hoja.plot(kind="bar", color=["#FF6F61", "#6A5ACD", "#4CAF50"], edgecolor="white")
-        ax.set_title("Cantidad de Registros por Hoja", fontsize=14, color="white")
-        ax.set_xlabel("Hojas", fontsize=12, color="white")
-        ax.set_ylabel("Cantidad de Registros", fontsize=12, color="white")
-        ax.tick_params(colors="white")
-        plt.xticks(rotation=45, color="white")
-        plt.yticks(color="white")
-
-        # Estética
-        plt.tight_layout()
-        plt.gca().set_facecolor("#1e1e1e")
-
-        # Guardar el gráfico en base64
-        img = io.BytesIO()
-        plt.savefig(img, format="png", bbox_inches="tight", facecolor="#1e1e1e")
-        img.seek(0)
-        kpi_images["registros_por_hoja"] = base64.b64encode(img.getvalue()).decode("utf8")
-        plt.close()
-
-    #5 Gráfico por Hoja (Suma de CLP $)
-    if "Hoja" in filtered_data.columns and "CLP $" in filtered_data.columns:
-        plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
-
-        # Agrupar por "Hoja" y sumar CLP $
-        data_por_hoja = filtered_data.groupby("Hoja")["CLP $"].sum()
-
-
-        # Crear el gráfico de barras
-        ax = data_por_hoja.plot(kind="bar", color=["#FF6F61", "#6A5ACD", "#4CAF50"], edgecolor="white")
-        ax.set_title("Costo Total (CLP $) por Hoja", fontsize=14, color="white")
-        ax.set_xlabel("Hojas", fontsize=12, color="white")
-        ax.set_ylabel("CLP $ Total", fontsize=12, color="white")
-        ax.tick_params(colors="white")
-        plt.xticks(rotation=45, color="white")
-        plt.yticks(color="white")
-
-        # Estética del gráfico
-        plt.tight_layout()
-        plt.gca().set_facecolor("#1e1e1e")
-
-        # Guardar el gráfico como base64
-        img = io.BytesIO()
-        plt.savefig(img, format="png", bbox_inches="tight", facecolor="#1e1e1e")
-        img.seek(0)
-        kpi_images["clp_por_hoja"] = base64.b64encode(img.getvalue()).decode("utf8")
-        plt.close()
-
-    # Gráfico Circular: Suma de CLP $ por Tipo de Carga
-    if "Tipo de Carga" in filtered_data.columns and "CLP $" in filtered_data.columns:
+    #2. Gráfico Circular: Suma de CLP $ por Tipo de Carga
+    if "Wip" in filtered_data.columns and "CLP $" in filtered_data.columns:
         plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
 
         # Agrupar por Tipo de Carga y sumar CLP $
-        data = filtered_data.groupby("Tipo de Carga")["CLP $"].sum()
+        data = filtered_data.groupby("Wip")["CLP $"].sum()
 
         categorias = data.index
 
@@ -260,6 +148,232 @@ def generar_kpi_graficos(filtered_data):
         img.seek(0)
         kpi_images["clp_por_tipo_carga"] = base64.b64encode(img.getvalue()).decode("utf8")
         plt.close()
+
+    # grafico Wip 025
+
+    if "Wip" in filtered_data.columns:
+        # Filtrar solo WIP 40025
+        filtered_data_025 = filtered_data[filtered_data["Wip"] == 40025]
+
+        # Diccionario de palabras clave para clasificar
+        diccionario_palabras_clave = {
+            "Misc": ["Misc"],
+            "Jaula": ["Jaula"],
+            "Fundaciones": ["Fundaciones"],
+            "Estanque": ["Estanque"],
+            "Escala": ["Escala"],
+            "Acceso": ["Acceso"],
+        }
+
+        # Crear una nueva columna para clasificar las categorías
+        filtered_data_025["Categoría"] = "Otros"
+
+        for categoria, palabras in diccionario_palabras_clave.items():
+            for palabra in palabras:
+                filtered_data_025.loc[
+                    filtered_data_025["Detalle"].str.contains(palabra, na=False, case=False), "Categoría"
+                ] = categoria
+
+        # Calcular la distribución
+        data_distribucion = filtered_data_025.groupby("Categoría")["CLP $"].sum()
+        categorias = data_distribucion.index
+        valores = data_distribucion.values
+
+        # Crear etiquetas personalizadas
+        total_dinero = sum(valores)
+
+        # Crear tabla de datos
+        tabla_datos = [
+            [categoria, f"{valor:,.0f} CLP", f"{(valor / total_dinero) * 100:.1f}%"]
+            for categoria, valor in zip(categorias, valores)
+        ]
+
+        # Crear gráfico circular
+        plt.figure(figsize=(8, 8), facecolor="#1e1e1e")
+        colores = ["#FF6F61", "#4CAF50", "#66B3FF", "#FFC300", "#8E44AD"][:len(categorias)]
+
+        wedges, texts, autotexts = plt.pie(
+            data_distribucion, labels=None, autopct=lambda p: f'{p:.1f}%' if p > 0 else '', colors=colores, startangle=140,
+            textprops=dict(color="white")
+        )
+        plt.legend(wedges, categorias, title="Detalle", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+        plt.title("Distribución de Costos WIP 40025", fontsize=14, color="white")
+        plt.gca().set_facecolor("#1e1e1e")
+
+        # Ajustar diseño
+        # Añadir tabla con colores personalizados
+        valores = data_distribucion.values
+
+        # Crear etiquetas personalizadas
+        total_dinero = sum(valores)
+        tabla_datos = [
+            [categoria, f"{valor:,.0f} CLP", f"{(valor / total_dinero) * 100:.1f}%"]
+            for categoria, valor in zip(categorias, valores)
+        ]
+        tabla = plt.table(
+            cellText=tabla_datos,
+            colColours=["#FF6F61", "#FF6F61", "#FF6F61"],  # Colores en formato hexadecimal
+            colLabels=["Categoría", "Valor CLP", "Porcentaje"],
+            cellLoc="center",
+            loc="bottom",
+            bbox=[0.0, -0.5, 1.0, 0.4],  # Ajustar posición de la tabla
+            edges="horizontal",
+        )
+
+        for key, cell in tabla.get_celld().items():
+            cell.set_edgecolor("white")    # Bordes de las celdas en blanco
+            cell.set_text_props(color="white")  # Texto en blanco
+            cell.set_facecolor("#1e1e1e")  # Fondo oscuro para las celdas
+        plt.tight_layout()
+
+        # Guardar imagen como base64
+        img = io.BytesIO()
+        plt.savefig(img, format="png", bbox_inches="tight", facecolor="#1e1e1e")
+        img.seek(0)
+        kpi_images["distribucion_con_tabla"] = base64.b64encode(img.getvalue()).decode("utf8")
+        plt.close()
+
+
+        #### 024 ####
+
+        filtered_data_024 = filtered_data[filtered_data["Wip"] == 40024]
+        # Diccionario de palabras clave para clasificar
+        diccionario_palabras_clave = {"Misc" : ["Misc", "Forro", "Malla"],
+                                    "Equipamiento" : ["Equipamiento","Cama", "Closet", "Tv", "Colchon", "Cajon", "Sill"]
+
+        }
+
+        # Crear una nueva columna para clasificar las categorías
+        filtered_data_024["Categoría"] = "Otros"
+
+        for categoria, palabras in diccionario_palabras_clave.items():
+            for palabra in palabras:
+                filtered_data_024.loc[filtered_data_024["Detalle"].str.contains(palabra, na=False, case=False), "Categoría"] = categoria
+
+
+        # Generar gráfico circular de distribución total
+        plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
+        data_distribucion = filtered_data_024.groupby("Categoría")["CLP $"].sum()
+        categorias = data_distribucion.index
+
+        colores = generar_colores(categorias)
+
+        wedges, texts, autotexts = plt.pie(
+            data_distribucion, labels=None, autopct="%1.1f%%", colors=colores,
+            textprops=dict(color="white"), startangle=140
+        )
+
+        plt.title("Distribución de costos WIP 024", fontsize=14, color="white")
+        plt.legend(wedges, categorias, title="Detalle", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+        plt.tight_layout()
+        plt.gca().set_facecolor("#1e1e1e")
+
+        # Ajustar diseño
+        # Añadir tabla con colores personalizados
+        valores = data_distribucion.values
+
+        # Crear etiquetas personalizadas
+        total_dinero = sum(valores)
+        tabla_datos = [
+            [categoria, f"{valor:,.0f} CLP", f"{(valor / total_dinero) * 100:.1f}%"]
+            for categoria, valor in zip(categorias, valores)
+        ]
+        tabla = plt.table(
+            cellText=tabla_datos,
+            colColours=["#FF6F61", "#FF6F61", "#FF6F61"],  # Colores en formato hexadecimal
+            colLabels=["Categoría", "Valor CLP", "Porcentaje"],
+            cellLoc="center",
+            loc="bottom",
+            bbox=[0.0, -0.5, 1.0, 0.4],  # Ajustar posición de la tabla
+            edges="horizontal",
+        )
+
+        for key, cell in tabla.get_celld().items():
+            cell.set_edgecolor("white")    # Bordes de las celdas en blanco
+            cell.set_text_props(color="white")  # Texto en blanco
+            cell.set_facecolor("#1e1e1e")  # Fondo oscuro para las celdas
+        plt.tight_layout()
+
+        img = io.BytesIO()
+        plt.savefig(img, format="png", bbox_inches="tight", facecolor="#1e1e1e")
+        img.seek(0)
+        kpi_images["DISTRIBUCION 40024"] = base64.b64encode(img.getvalue()).decode("utf8")
+        plt.close()
+
+        # Mostrar registros que se agrupan en "Otros"
+        registros_otros = filtered_data_024[filtered_data_024["Categoría"] == "Otros"]["Detalle"].tolist()
+        print("Registros clasificados como 'Otros':", registros_otros)
+
+
+                #### 023 ####
+
+        filtered_data_023 = filtered_data[filtered_data["Wip"] == 40023]
+        # Diccionario de palabras clave para clasificar
+        diccionario_palabras_clave = {"ICG" : ["ICG"],
+                                    "CR" : ["CR"],
+                                    "Asap" : ["Asap"],
+                                    "Pro Air" : ["Pro Air"]
+        }
+
+        # Crear una nueva columna para clasificar las categorías
+        filtered_data_023["Categoría"] = "Otros"
+
+        for categoria, palabras in diccionario_palabras_clave.items():
+            for palabra in palabras:
+                filtered_data_023.loc[filtered_data_023["Detalle"].str.contains(palabra, na=False, case=False), "Categoría"] = categoria
+
+
+        # Generar gráfico circular de distribución total
+        plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
+        data_distribucion = filtered_data_023.groupby("Categoría")["CLP $"].sum()
+        categorias = data_distribucion.index
+
+        colores = generar_colores(categorias)
+
+        wedges, texts, autotexts = plt.pie(
+            data_distribucion, labels=None, autopct="%1.1f%%", colors=colores,
+            textprops=dict(color="white"), startangle=140
+        )
+
+        plt.title("Distribución de costos WIP 023", fontsize=14, color="white")
+        plt.legend(wedges, categorias, title="Detalle", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+        plt.tight_layout()
+        plt.gca().set_facecolor("#1e1e1e")
+        # Ajustar diseño
+        # Añadir tabla con colores personalizados
+        valores = data_distribucion.values
+
+        # Crear etiquetas personalizadas
+        total_dinero = sum(valores)
+        tabla_datos = [
+            [categoria, f"{valor:,.0f} CLP", f"{(valor / total_dinero) * 100:.1f}%"]
+            for categoria, valor in zip(categorias, valores)
+        ]
+        tabla = plt.table(
+            cellText=tabla_datos,
+            colColours=["#FF6F61", "#FF6F61", "#FF6F61"],  # Colores en formato hexadecimal
+            colLabels=["Categoría", "Valor CLP", "Porcentaje"],
+            cellLoc="center",
+            loc="bottom",
+            bbox=[0.0, -0.5, 1.0, 0.4],  # Ajustar posición de la tabla
+            edges="horizontal",
+        )
+
+        for key, cell in tabla.get_celld().items():
+            cell.set_edgecolor("white")    # Bordes de las celdas en blanco
+            cell.set_text_props(color="white")  # Texto en blanco
+            cell.set_facecolor("#1e1e1e")  # Fondo oscuro para las celdas
+        plt.tight_layout()
+
+        img = io.BytesIO()
+        plt.savefig(img, format="png", bbox_inches="tight", facecolor="#1e1e1e")
+        img.seek(0)
+        kpi_images["DISTRIBUCION 40023"] = base64.b64encode(img.getvalue()).decode("utf8")
+        plt.close()
+
+        # Mostrar registros que se agrupan en "Otros"
+        registros_otros = filtered_data_023[filtered_data_023["Categoría"] == "Otros"]["Detalle"].tolist()
+        print("Registros clasificados como 'Otros':", registros_otros)
 
     return kpi_images
 
@@ -363,7 +477,7 @@ def generar_colores(categorias):
 def descargar_informe():
     global kpi_images_global
     global kpi_images_global_1
-    file_path = "data/SIERRA_GORDA.xlsx"
+    file_path = "data/CENTINELA.xlsx"
     informe_path = "static/informe_transporte.pdf"
 
     try:
@@ -382,12 +496,6 @@ def descargar_informe():
 
 def open_browser():
     webbrowser.open_new("http://127.0.0.1:5000/")
-
-def allowed_file(filename):
-    """Verificar si el archivo tiene una extensión permitida."""
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 
 if __name__ == "__main__":
     def open_browser():

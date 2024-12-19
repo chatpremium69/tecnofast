@@ -2,14 +2,13 @@ import pandas as pd
 import os
 import openpyxl
 
-# Construir ruta al archivo Excel
-file_path = 'Control y registro de misceláneos proyecto Centinela.xlsx'
+
 
 # Lista de títulos esperados
 column_names = [
     "Item", "Fecha", "CC", "Ruta", "Proyecto", "Origen", "Destino", "Tipo de Carga", 
     "Detalle", "Transportista", "Chofer", "Rut", "N° Contacto", "P-Camion", 
-    "N° Guia Tecno Fast", "N° Guias Proveedor", "Comentarios", "%Ocupación", 
+    "N° Guia Tecno Fast", "N° Guias Proveedor", "Comentarios",
     "CLP $", "N° Etp", "N° OC", "Wip"
 ]
 
@@ -22,7 +21,7 @@ def procesar_data(file_path):
 
     # Procesar cada hoja
     for sheet in sheet_relevant:
-        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=10, usecols="A:V", names=column_names,engine="openpyxl" )
+        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=10, usecols="A:U", names=column_names,engine="openpyxl" )
         
         # Eliminar filas completamente vacías
         df = df.dropna(how='all')
@@ -41,17 +40,18 @@ def procesar_data_modulos(file_path):
     column_names = [
         "N° DE SERIE",
         "EDIFICIO",
+        "TIPO",
         "PISO",
         "TRAMO",
         "TRANSPORTISTA",
         "CONDUCTOR",
         "P-CAMION",
+        "TIPO RAMPLA",
         "N° DE GUIA",
         "FECHA DESPACHO",
         "VALOR FLETE",
         "N° EDP",
         "N° OC",
-        "Observación"
     ]
     # Especificar las hojas relevantes
     sheet_relevant = ["MODULOS"]
@@ -61,7 +61,7 @@ def procesar_data_modulos(file_path):
 
     # Procesar cada hoja
     for sheet in sheet_relevant:
-        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=9, usecols="A:M", names=column_names, engine="openpyxl")
+        df = pd.read_excel(file_path, sheet_name=sheet, skiprows=4, usecols="A:N", names=column_names, engine="openpyxl")
         
         # Limpiar y convertir la columna "N° DE SERIE" a string para evitar problemas
         df["N° DE SERIE"] = df["N° DE SERIE"].astype(str).str.strip()
