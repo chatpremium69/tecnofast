@@ -6,22 +6,15 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import matplotlib
 import io
 import base64
 from werkzeug.utils import secure_filename
 from data import data_processing
 from generar_informe import generar_informe
+matplotlib.use("Agg")  # Configura el backend para evitar errores de GUI
 
 app = Flask(__name__)
-
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # Límite de 50 MB
-
-
-# Configuración de carpeta de subida
-app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "uploads")
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)  # Crear carpeta si no existe
-ALLOWED_EXTENSIONS = {"xls", "xlsx"}  # Extensiones permitidas
-
 
 # Configurar estilos globales de Matplotlib
 plt.style.use("ggplot")
@@ -35,13 +28,15 @@ def dashboard():
     global kpi_images_global
     global kpi_images_global_1
 
-    file_path = "data/CENTINELA.xlsx"  # Archivo predeterminado
+    file_path = "1Kl_5ufWDBFkhiyfvKOLpEtuCRlVMO5FEnU3WRX0PGQ8"
     start_date = pd.Timestamp("2001-01-01")  # Rango inicial por defecto
     end_date = pd.Timestamp("today")  # Fecha final por defecto
 
+    filtered_data = pd.DataFrame()  # DataFrame vacío para inicializar
+    filtered_data_1 = pd.DataFrame()
+
     if request.method == "POST":
-        # Obtener fechas del formulario si están disponibles
-        if "filter_all" in request.form:  # Si se presiona el botón "Mostrar Todo"
+        if "filter_all" in request.form:  # Si se presiona "Mostrar Todo"
             start_date = pd.Timestamp("2001-01-01")
             end_date = pd.Timestamp("today")
         else:
@@ -56,35 +51,60 @@ def dashboard():
 
     try:
         # Procesar los datos
-        data = data_processing.procesar_data(file_path)
-        data_1 = data_processing.procesar_data_modulos(file_path)
+        data = data_processing.procesar_data_google_sheets(file_path)
+        data_1 = data_processing.procesar_data_modulos_google_sheets(file_path)
 
-        # Convertir y filtrar las fechas
-        data["Fecha"] = pd.to_datetime(data["Fecha"], errors="coerce")
-        filtered_data = data[(data["Fecha"] >= start_date) & (data["Fecha"] <= end_date)]
+        # Validar la existencia de las columnas de fechas antes de filtrar
+        if "Fecha" in data.columns:
+            data["Fecha"] = pd.to_datetime(data["Fecha"], errors="coerce")
+            if not data["Fecha"].isna().all():
+                filtered_data = data.loc[
+                    (data["Fecha"] >= start_date) & (data["Fecha"] <= end_date)
+                ]
 
-        data_1["FECHA DESPACHO"] = pd.to_datetime(data_1["FECHA DESPACHO"], errors="coerce")
-        filtered_data_1 = data_1[(data_1["FECHA DESPACHO"] >= start_date) & (data_1["FECHA DESPACHO"] <= end_date)]
+        if "FECHA DESPACHO" in data_1.columns:
+            data_1["FECHA DESPACHO"] = pd.to_datetime(data_1["FECHA DESPACHO"], errors="coerce")
+            if not data_1["FECHA DESPACHO"].isna().all():
+                filtered_data_1 = data_1.loc[
+                    (data_1["FECHA DESPACHO"] >= start_date) & (data_1["FECHA DESPACHO"] <= end_date)
+                ]
 
-        # Generar gráficos de KPI
-        kpi_images_global = generar_kpi_graficos(filtered_data)
-        kpi_images_global_1 = generar_kpi_graficos_1(filtered_data_1, data_1)
+        # Validar si los DataFrames tienen datos válidos
+        if filtered_data.empty and filtered_data_1.empty:
+            return render_template(
+                "dashboard.html",
+                message="No hay datos disponibles para el rango de fechas seleccionado.",
+            )
+
+        # Limpiar datos adicionales en filtered_data_1 si existen
+        if not filtered_data_1.empty and "N° EDP" in filtered_data_1.columns:
+            filtered_data_1 = filtered_data_1.dropna(subset=["N° EDP"])
+            filtered_data_1 = filtered_data_1[filtered_data_1["N° EDP"].astype(str).str.strip() != ""]
+
+        # Generar gráficos condicionalmente
+        kpi_images_global = generar_kpi_graficos(filtered_data) if not filtered_data.empty else None
+        kpi_images_global_1 = generar_kpi_graficos_1(filtered_data_1, data_1) if not filtered_data_1.empty else None
 
     except Exception as e:
         return render_template("error.html", message=f"Error al procesar o filtrar los datos: {str(e)}")
 
+    # Renderizar solo los datos disponibles
     return render_template(
         "dashboard.html",
         filtered_table=filtered_data.to_html(classes="table table-striped", index=False) if not filtered_data.empty else None,
-        kpi_images=kpi_images_global,
+        kpi_images=kpi_images_global if not filtered_data.empty else None,
         filtered_table_1=filtered_data_1.to_html(classes="table table-striped", index=False) if not filtered_data_1.empty else None,
-        kpi_images_1=kpi_images_global_1,
+        kpi_images_1=kpi_images_global_1 if not filtered_data_1.empty else None,
     )
+
+
+
 
 
 def generar_kpi_graficos(filtered_data):
     """Genera gráficos mejorados y devuelve imágenes en formato base64."""
     kpi_images = {}
+    print("0")
 
 
 
@@ -111,15 +131,17 @@ def generar_kpi_graficos(filtered_data):
         img.seek(0)
         kpi_images["tipo_carga"] = base64.b64encode(img.getvalue()).decode("utf8")
         plt.close()
+        print("1")
 
 
-    #2. Gráfico Circular: Suma de CLP $ por Tipo de Carga
+    # 2. Gráfico Circular: Suma de CLP $ por Tipo de Carga
     if "Wip" in filtered_data.columns and "CLP $" in filtered_data.columns:
         plt.figure(figsize=(8, 6), facecolor="#1e1e1e")
-
+        print(1.1)
+        
         # Agrupar por Tipo de Carga y sumar CLP $
         data = filtered_data.groupby("Wip")["CLP $"].sum()
-
+        
         categorias = data.index
 
         # Generar colores dinámicamente
@@ -149,11 +171,14 @@ def generar_kpi_graficos(filtered_data):
         kpi_images["clp_por_tipo_carga"] = base64.b64encode(img.getvalue()).decode("utf8")
         plt.close()
 
-    # grafico Wip 025
 
+        print("2")
+
+    # grafico Wip 025
+    print(2.1)
     if "Wip" in filtered_data.columns:
         # Filtrar solo WIP 40025
-        filtered_data_025 = filtered_data[filtered_data["Wip"] == 40025]
+        filtered_data_025 = filtered_data[filtered_data["Wip"] == "40025"]
 
         # Diccionario de palabras clave para clasificar
         diccionario_palabras_clave = {
@@ -199,7 +224,7 @@ def generar_kpi_graficos(filtered_data):
         plt.legend(wedges, categorias, title="Detalle", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
         plt.title("Distribución de Costos WIP 40025", fontsize=14, color="white")
         plt.gca().set_facecolor("#1e1e1e")
-
+        print("2.2")
         # Ajustar diseño
         # Añadir tabla con colores personalizados
         valores = data_distribucion.values
@@ -219,7 +244,7 @@ def generar_kpi_graficos(filtered_data):
             bbox=[0.0, -0.5, 1.0, 0.4],  # Ajustar posición de la tabla
             edges="horizontal",
         )
-
+        print("2.4")
         for key, cell in tabla.get_celld().items():
             cell.set_edgecolor("white")    # Bordes de las celdas en blanco
             cell.set_text_props(color="white")  # Texto en blanco
@@ -233,10 +258,12 @@ def generar_kpi_graficos(filtered_data):
         kpi_images["distribucion_con_tabla"] = base64.b64encode(img.getvalue()).decode("utf8")
         plt.close()
 
+        print("3")
+
 
         #### 024 ####
 
-        filtered_data_024 = filtered_data[filtered_data["Wip"] == 40024]
+        filtered_data_024 = filtered_data[filtered_data["Wip"] == "40024"]
         # Diccionario de palabras clave para clasificar
         diccionario_palabras_clave = {"Misc" : ["Misc", "Forro", "Malla"],
                                     "Equipamiento" : ["Equipamiento","Cama", "Closet", "Tv", "Colchon", "Cajon", "Sill"]
@@ -303,11 +330,11 @@ def generar_kpi_graficos(filtered_data):
         # Mostrar registros que se agrupan en "Otros"
         registros_otros = filtered_data_024[filtered_data_024["Categoría"] == "Otros"]["Detalle"].tolist()
         print("Registros clasificados como 'Otros':", registros_otros)
-
+        print("4")
 
                 #### 023 ####
 
-        filtered_data_023 = filtered_data[filtered_data["Wip"] == 40023]
+        filtered_data_023 = filtered_data[filtered_data["Wip"] == "40023"]
         # Diccionario de palabras clave para clasificar
         diccionario_palabras_clave = {"ICG" : ["ICG"],
                                     "CR" : ["CR"],
@@ -374,6 +401,7 @@ def generar_kpi_graficos(filtered_data):
         # Mostrar registros que se agrupan en "Otros"
         registros_otros = filtered_data_023[filtered_data_023["Categoría"] == "Otros"]["Detalle"].tolist()
         print("Registros clasificados como 'Otros':", registros_otros)
+        print("5")
 
     return kpi_images
 
@@ -481,9 +509,8 @@ def descargar_informe():
     informe_path = "static/informe_transporte.pdf"
 
     try:
-        # Generar informe PDF
-        data = data_processing.procesar_data(file_path)
-        generar_informe(data, kpi_images_global, kpi_images_global_1, output_path=informe_path)
+
+        generar_informe( kpi_images_global, kpi_images_global_1, output_path=informe_path)
         
         return send_file(informe_path, as_attachment=True)
     except Exception as e:
