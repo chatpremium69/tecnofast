@@ -1,15 +1,17 @@
 /* Estilos Generales */
 body {
-    background-color: #f8f9fa; /* Fondo claro para el cuerpo */
+    background-color: #f8f9fa; /* Fondo claro */
     color: #343a40; /* Texto gris oscuro */
-    font-family: Arial, sans-serif;
+    font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
+    line-height: 1.6; /* Mejora la legibilidad */
 }
 
 /* Contenedor Principal */
 .container {
     margin-top: 20px;
+    padding: 20px;
 }
 
 /* Estilo de las Tarjetas */
@@ -18,28 +20,52 @@ body {
     border: 2px solid #dc3545; /* Borde rojo */
     color: #ffffff;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); /* Sombra mejorada */
+    overflow: hidden; /* Evitar contenido desbordado */
 }
 
 .card-header {
-    background-color: #dc3545; /* Encabezado rojo */
+    background-color: #dc3545; /* Fondo del encabezado */
     color: #ffffff;
     font-weight: bold;
     text-align: center;
+    padding: 10px;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+}
+
+.card-body {
+    padding: 20px;
 }
 
 /* Botones */
-.btn-danger {
-    background-color: #dc3545;
+.btn-danger, .btn-primary {
     border: none;
-    color: #ffffff;
     font-weight: bold;
-    transition: background-color 0.3s ease;
+    padding: 10px 20px;
+    transition: background-color 0.3s ease, transform 0.2s;
+    border-radius: 5px;
 }
 
-.btn-danger:hover {
+.btn-danger {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+.btn-danger:hover, .btn-danger:focus {
     background-color: #b02a37;
     color: #ffffff;
+    transform: scale(1.05);
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: #0a58ca;
+    transform: scale(1.05);
 }
 
 /* Formulario */
@@ -48,17 +74,33 @@ body {
     border-radius: 5px;
     background-color: #343a40;
     color: #ffffff;
+    padding: 10px;
 }
 
 .form-control:focus {
     border-color: #dc3545;
-    box-shadow: 0 0 5px rgba(220, 53, 69, 0.8);
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.8);
     outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+label {
+    font-weight: bold;
+    color: #dc3545;
 }
 
 /* Tablas */
 .table {
     margin-bottom: 0;
+    border-collapse: collapse;
+}
+
+.table thead th {
+    background-color: #dc3545;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 1rem;
 }
 
 .table-striped > tbody > tr:nth-of-type(odd) {
@@ -71,19 +113,30 @@ body {
     color: #ffffff;
 }
 
-.table thead th {
-    background-color: #dc3545;
-    color: white;
-    text-align: center;
+.table tbody td, .table thead th {
+    padding: 10px;
+    border: 1px solid #495057;
 }
 
-/* Gráfico */
+.table-hover > tbody > tr:hover {
+    background-color: #495057;
+    color: #ffffff;
+}
+
+/* Gráficos */
 img {
+    max-width: 100%; /* Asegurar que no desborde */
+    height: auto;
     border: 2px solid #dc3545;
     border-radius: 8px;
     background-color: #1e1e1e;
-    padding: 5px;
+    padding: 10px;
     margin-top: 15px;
+    transition: transform 0.3s ease;
+}
+
+img:hover {
+    transform: scale(1.05);
 }
 
 /* Mensajes de Error */
@@ -92,5 +145,43 @@ img {
     font-weight: bold;
     text-align: center;
     margin-top: 20px;
+    padding: 10px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 5px;
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
+/* Estilo para Links */
+a {
+    color: #dc3545;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: #b02a37;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .card {
+        margin-bottom: 20px;
+        box-shadow: none; /* Reducir sombras en pantallas pequeñas */
+    }
+
+    img {
+        margin-top: 10px;
+    }
+
+    .form-control {
+        font-size: 0.9rem;
+    }
+}

@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 from data import data_processing
 from generar_informe import generar_informe
 matplotlib.use("Agg")  # Configura el backend para evitar errores de GUI
+import traceback
 
 app = Flask(__name__)
 
@@ -61,6 +62,11 @@ def dashboard():
                 filtered_data = data.loc[
                     (data["Fecha"] >= start_date) & (data["Fecha"] <= end_date)
                 ]
+                print(filtered_data)
+                filtered_data.dropna(subset = ["CLP $", "N° Etp"])
+                filtered_data = filtered_data[filtered_data["CLP $"].astype(str).str.strip() != ""]
+                filtered_data = filtered_data[filtered_data["N° Etp"].astype(str).str.strip() != ""]
+                print(filtered_data)
 
         if "FECHA DESPACHO" in data_1.columns:
             data_1["FECHA DESPACHO"] = pd.to_datetime(data_1["FECHA DESPACHO"], errors="coerce")
@@ -68,25 +74,33 @@ def dashboard():
                 filtered_data_1 = data_1.loc[
                     (data_1["FECHA DESPACHO"] >= start_date) & (data_1["FECHA DESPACHO"] <= end_date)
                 ]
+                print(filtered_data_1)
+                print(filtered_data_1.empty)
 
         # Validar si los DataFrames tienen datos válidos
         if filtered_data.empty and filtered_data_1.empty:
             return render_template(
-                "dashboard.html",
+                "error.html",
                 message="No hay datos disponibles para el rango de fechas seleccionado.",
             )
 
         # Limpiar datos adicionales en filtered_data_1 si existen
         if not filtered_data_1.empty and "N° EDP" in filtered_data_1.columns:
+            print(filtered_data_1)
             filtered_data_1 = filtered_data_1.dropna(subset=["N° EDP"])
             filtered_data_1 = filtered_data_1[filtered_data_1["N° EDP"].astype(str).str.strip() != ""]
+            print(filtered_data_1)
 
         # Generar gráficos condicionalmente
+
         kpi_images_global = generar_kpi_graficos(filtered_data) if not filtered_data.empty else None
         kpi_images_global_1 = generar_kpi_graficos_1(filtered_data_1, data_1) if not filtered_data_1.empty else None
 
     except Exception as e:
+        traceback.print_exc()
         return render_template("error.html", message=f"Error al procesar o filtrar los datos: {str(e)}")
+
+
 
     # Renderizar solo los datos disponibles
     return render_template(

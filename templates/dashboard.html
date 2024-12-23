@@ -5,50 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Transporte</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <!-- Enlace al CSS correcto -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/static.css') }}">
 </head>
 <body>
-    <div class="container">
+    <div class="container py-4">
         <!-- Logo -->
-        <div class="text-left my-4">
+        <div class="text-start mb-4">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="img-fluid" style="max-width: 150px;">
         </div>
-        <!-- Título -->
-        <div class="card mb-4">
-            <div class="card-header">Dashboard de Transporte - Proyecto</div>
-            <div class="card-body">
-                <p class="text-center">Seleccione un rango de fechas para visualizar estadísticas y datos relevantes o filtre todo el contenido.</p>
+
+        <!-- Título principal -->
+        <div class="card mb-4 shadow">
+            <div class="card-header text-center bg-primary text-white fw-bold">Dashboard de Transporte - Proyecto</div>
+            <div class="card-body text-center">
+                <p class="mb-0">Seleccione un rango de fechas para visualizar estadísticas y datos relevantes o filtre todo el contenido.</p>
             </div>
         </div>
 
         <!-- Formulario de Fechas -->
-        <div class="card mb-4">
+        <div class="card mb-4 shadow">
             <div class="card-body">
                 <form method="POST" id="filter-form">
-                    <div class="row">
+                    <div class="row g-3">
                         <div class="col-md-6">
                             <label for="start_date" class="form-label">Fecha de Inicio</label>
-                            <input type="date" class="form-control" id="start_date" name="start_date">
+                            <input type="date" class="form-control" id="start_date" name="start_date" aria-label="Seleccione la fecha de inicio">
                         </div>
                         <div class="col-md-6">
                             <label for="end_date" class="form-label">Fecha de Término</label>
-                            <input type="date" class="form-control" id="end_date" name="end_date">
+                            <input type="date" class="form-control" id="end_date" name="end_date" aria-label="Seleccione la fecha de término">
                         </div>
                     </div>
                     <div class="text-center mt-3">
-                        <button type="submit" class="btn btn-danger">Filtrar Datos</button>
-                        <button type="submit" class="btn btn-primary" name="filter_all" value="true">Mostrar Todo</button>
+                        <button type="submit" class="btn btn-danger me-2">Filtrar Datos</button>
+                        <button type="submit" class="btn btn-secondary" name="filter_all" value="true">Mostrar Todo</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Datos Filtrados -->
+        <!-- Datos Filtrados - Módulos -->
         {% if filtered_table_1 %}
-        <div class="card mb-4">
-            <div class="card-header">Datos Filtrados MODULOS</div>
-            <div class="card-body" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
+        <div class="card mb-4 shadow">
+            <div class="card-header bg-success text-white fw-bold">Datos Filtrados - Módulos</div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                 <div class="table-responsive">
                     {{ filtered_table_1 | safe }}
                 </div>
@@ -56,10 +56,11 @@
         </div>
         {% endif %}
 
+        <!-- Datos Filtrados - Misceláneos -->
         {% if filtered_table %}
-        <div class="card mb-4">
-            <div class="card-header">Datos Filtrados MISCELANEOS</div>
-            <div class="card-body" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
+        <div class="card mb-4 shadow">
+            <div class="card-header bg-warning text-dark fw-bold">Datos Filtrados - Misceláneos</div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                 <div class="table-responsive">
                     {{ filtered_table | safe }}
                 </div>
@@ -67,41 +68,46 @@
         </div>
         {% endif %}
 
-        <!-- Gráficos de KPIs -->
+        <!-- Gráficos de KPIs - Módulos -->
         {% if kpi_images_1 %}
-        <div class="card mb-4">
-            <div class="card-header">Gráficos de KPIs MODULOS</div>
+        <div class="card mb-4 shadow">
+            <div class="card-header bg-info text-white fw-bold">Gráficos de KPIs - Módulos</div>
             <div class="card-body">
-                <div class="row">
+                <div class="row g-3">
                     {% for key, image in kpi_images_1.items() %}
-                    <div class="col-md-4 text-center mb-3">
-                        <h5>{{ key.replace('_', ' ').title() }}</h5>
-                        <img src="data:image/png;base64,{{ image }}" alt="{{ key }}" class="img-fluid" style="border: 2px solid #dc3545; border-radius: 8px;">
+                    <div class="col-md-4 text-center">
+                        <h5 class="fw-bold">{{ key.replace('_', ' ').title() }}</h5>
+                        <img src="data:image/png;base64,{{ image }}" alt="{{ key }}" class="img-fluid border border-success rounded">
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
         {% endif %}
-        {% if kpi_images %}
-        <div class="card mb-4">
-            <div class="card-header">Gráficos de KPIs MISCELANEOS</div>
-            <div class="card-body">
-                <div class="row">
-                    {% for key, image in kpi_images.items() %}
-                    <div class="col-md-4 text-center mb-3">
-                        <h5>{{ key.replace('_', ' ').title() }}</h5>
-                        <img src="data:image/png;base64,{{ image }}" alt="{{ key }}" class="img-fluid" style="border: 2px solid #dc3545; border-radius: 8px;">
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
 
-    <form action="/descargar_informe" method="POST">
-        <button type="submit" class="btn btn-danger">Descargar Informe PDF</button>
-    </form>
+        <!-- Gráficos de KPIs - Misceláneos -->
+        {% if kpi_images %}
+        <div class="card mb-4 shadow">
+            <div class="card-header bg-danger text-white fw-bold">Gráficos de KPIs - Misceláneos</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for key, image in kpi_images.items() %}
+                    <div class="col-md-4 text-center">
+                        <h5 class="fw-bold">{{ key.replace('_', ' ').title() }}</h5>
+                        <img src="data:image/png;base64,{{ image }}" alt="{{ key }}" class="img-fluid border border-danger rounded">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Botón de descarga -->
+        <div class="text-center mt-4">
+            <form action="/descargar_informe" method="POST">
+                <button type="submit" class="btn btn-dark">Descargar Informe PDF</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
